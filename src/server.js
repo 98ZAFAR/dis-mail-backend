@@ -8,8 +8,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const connectDatabase = require('./controllers/db/connectDatabase');
+const { syncDatabase } = require('./models/index');
 
 connectDatabase();
+syncDatabase();
 
 app.use(
     cors({ 
@@ -22,6 +24,12 @@ app.use(cookieParser());
 
 const userRoutes = require('./routes/user/route');
 app.use('/api/users', userRoutes);
+
+const sessionRoutes = require('./routes/session/route');
+app.use('/api/session', sessionRoutes);
+
+const mailboxRoutes = require('./routes/mailbox/route');
+app.use('/api/mailbox', mailboxRoutes);
 
 app.get('/', (req, res) => {
     res.send('Disposable Mail Backend is running');
