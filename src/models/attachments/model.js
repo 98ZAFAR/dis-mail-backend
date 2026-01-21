@@ -8,6 +8,10 @@ const Attachment = db.define('Attachment', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
+    mailId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+    },
     filename: {
         type: DataTypes.STRING,
         allowNull: false,

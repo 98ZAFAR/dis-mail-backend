@@ -8,6 +8,10 @@ const DisposableEmail = db.define('DisposableEmail', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
+    mailboxId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+    },
     alias:{
         type: DataTypes.STRING(255),
         unique:true

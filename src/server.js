@@ -31,6 +31,9 @@ app.use('/api/session', sessionRoutes);
 const mailboxRoutes = require('./routes/mailbox/route');
 app.use('/api/mailbox', mailboxRoutes);
 
+const mailRoutes = require('./routes/mail/route');
+app.use('/api/mail', mailRoutes);
+
 app.get('/', (req, res) => {
     res.send('Disposable Mail Backend is running');
 });

@@ -55,11 +55,17 @@ Attachment.belongsTo(Mail, {
 // Sync all models after associations are defined
 const syncDatabase = async () => {
     try {
-        await User.sync();
-        await Mailbox.sync();
-        await DisposableEmail.sync();
-        await Mail.sync();
-        await Attachment.sync();
+        // Use force: true in development to drop and recreate tables
+        // Use alter: true in production to modify existing tables
+        const syncOptions = process.env.NODE_ENV === 'production' 
+            ? { alter: false } 
+            : { force: false };
+
+        await User.sync(syncOptions);
+        await Mailbox.sync(syncOptions);
+        await DisposableEmail.sync(syncOptions);
+        await Mail.sync(syncOptions);
+        await Attachment.sync(syncOptions);
         console.log('All models synchronized successfully');
     } catch (error) {
         console.error('Error synchronizing models:', error);

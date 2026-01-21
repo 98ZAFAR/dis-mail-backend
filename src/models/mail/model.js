@@ -8,10 +8,13 @@ const Mail = db.define('Mail', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
+    mailboxId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+    },
     messageId: {
         type: DataTypes.STRING,
         allowNull: true,
-        unique: true,
         comment: 'SMTP Message-ID header',
     },
     from: {
@@ -84,6 +87,11 @@ const Mail = db.define('Mail', {
 }, {
     timestamps: true,
     indexes: [
+        {
+            unique: true,
+            fields: ['messageId'],
+            name: 'mails_message_id_unique',
+        },
         {
             fields: ['receivedAt'],
         },
