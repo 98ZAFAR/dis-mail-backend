@@ -47,6 +47,7 @@ const createMailbox = async (req, res) => {
     }
 
     const expiresAt = new Date();
+    // expiresAt.setMinutes(expiresAt.getMinutes() + 1);
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     const mailbox = await Mailbox.create({

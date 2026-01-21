@@ -22,6 +22,10 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+const schedular = require('./libs/utils/schedular');
+schedular.start();
+console.log('✓ Scheduler started - Running every 1 minutes');
+
 const userRoutes = require('./routes/user/route');
 app.use('/api/users', userRoutes);
 
@@ -33,6 +37,12 @@ app.use('/api/mailbox', mailboxRoutes);
 
 const mailRoutes = require('./routes/mail/route');
 app.use('/api/mail', mailRoutes);
+
+const adminRoutes = require('./routes/admin/route');
+const validateUser = require('./middlewares/authMiddleware');
+const verifyAdmin = require('./middlewares/adminMiddleware');
+
+app.use('/api/admin', validateUser, verifyAdmin, adminRoutes);
 
 app.get('/', (req, res) => {
     res.send('Disposable Mail Backend is running');
