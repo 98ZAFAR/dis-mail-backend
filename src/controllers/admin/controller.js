@@ -1,6 +1,11 @@
 const { manualCleanup } = require("../../libs/utils/schedular");
 const { Mailbox, Mail, Attachment, DisposableEmail } = require("../../models");
 const { Op } = require("sequelize");
+const {
+  getCacheStats,
+  clearAllCache,
+  invalidateMailboxCache,
+} = require("../../libs/utils/cacheService");
 
 const triggerCleanup = async (req, res) => {
   try {
@@ -38,6 +43,9 @@ const getStats = async (req, res) => {
     });
     const totalAttachments = await Attachment.count();
 
+    // Get cache statistics
+    const cacheStats = await getCacheStats();
+
     const stats = {
       mailboxes: {
         total: totalMailboxes,
@@ -53,6 +61,7 @@ const getStats = async (req, res) => {
       attachments: {
         total: totalAttachments,
       },
+      cache: cacheStats,
       scheduler: {
         interval: "Every 10 minutes",
         nextCleanup: "Check scheduler logs",
@@ -406,6 +415,45 @@ const healthCheck = async (req, res) => {
   }
 };
 
+const clearCache = async (req, res) => {
+  try {
+    const result = await clearAllCache();
+    
+    return res.status(200).json({
+      message: "Cache cleared successfully",
+      result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to clear cache",
+      error: error.message,
+    });
+  }
+};
+
+const invalidateMailbox = async (req, res) => {
+  try {
+    const { emailAddress } = req.params;
+    
+    if (!emailAddress) {
+      return res.status(400).json({
+        message: "Email address is required",
+      });
+    }
+
+    await invalidateMailboxCache(emailAddress);
+    
+    return res.status(200).json({
+      message: `Cache invalidated for ${emailAddress}`,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to invalidate cache",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   triggerCleanup,
   getStats,
@@ -418,4 +466,6 @@ module.exports = {
   getRecentEmails,
   searchEmails,
   healthCheck,
+  clearCache,
+  invalidateMailbox,
 };

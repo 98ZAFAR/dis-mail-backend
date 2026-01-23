@@ -35,6 +35,9 @@ app.use('/api/session', sessionRoutes);
 const mailboxRoutes = require('./routes/mailbox/route');
 app.use('/api/mailbox', mailboxRoutes);
 
+const userMailboxRoutes = require('./routes/userMailbox/route');
+app.use('/api/user/mailbox', userMailboxRoutes);
+
 const mailRoutes = require('./routes/mail/route');
 app.use('/api/mail', mailRoutes);
 

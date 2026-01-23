@@ -10,6 +10,8 @@ const {
   getRecentEmails,
   searchEmails,
   healthCheck,
+  clearCache,
+  invalidateMailbox,
 } = require("../../controllers/admin/controller");
 
 const router = require("express").Router();
@@ -18,6 +20,10 @@ const router = require("express").Router();
 router.post("/cleanup", triggerCleanup);
 router.get("/stats", getStats);
 router.get("/health", healthCheck);
+
+// Cache management
+router.delete("/cache/clear", clearCache);
+router.delete("/cache/invalidate/:emailAddress", invalidateMailbox);
 
 // Mailbox management
 router.get("/mailboxes", getAllMailboxes);

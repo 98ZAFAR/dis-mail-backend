@@ -2,8 +2,10 @@ const Mailbox = require("../../models/mailbox/model");
 const Mail = require("../../models/mail/model");
 const Attachment = require("../../models/attachments/model");
 const { decrypt } = require("../../libs/utils/decryption");
-
-
+const {
+  getMailboxByEmail,
+  cacheMailboxByEmail,
+} = require("../../libs/utils/cacheService");
 
 const validateRecipient = async (req, res) => {
   try {
@@ -16,18 +18,40 @@ const validateRecipient = async (req, res) => {
       });
     }
 
-    const mailbox = await Mailbox.findOne({
-      where: {
-        emailAddress: emailAddress.toLowerCase(),
-        isActive: true,
-      },
-    });
+    const normalizedEmail = emailAddress.toLowerCase();
+
+    // Try to get from cache first
+    let mailbox = await getMailboxByEmail(normalizedEmail);
 
     if (!mailbox) {
-      return res.status(200).json({
-        valid: false,
-        message: "Mailbox not found",
+      // Cache miss - fetch from database
+      console.log(`[Cache Miss] Mailbox lookup: ${normalizedEmail}`);
+      
+      mailbox = await Mailbox.findOne({
+        where: {
+          emailAddress: normalizedEmail,
+          isActive: true,
+        },
       });
+
+      if (!mailbox) {
+        return res.status(200).json({
+          valid: false,
+          message: "Mailbox not found",
+        });
+      }
+
+      // Cache the mailbox for future lookups
+      await cacheMailboxByEmail(normalizedEmail, {
+        id: mailbox.id,
+        emailAddress: mailbox.emailAddress,
+        isActive: mailbox.isActive,
+        expiresAt: mailbox.expiresAt,
+      });
+      
+      console.log(`[Cache Set] Mailbox cached: ${normalizedEmail}`);
+    } else {
+      console.log(`[Cache Hit] Mailbox lookup: ${normalizedEmail}`);
     }
 
     // Check if mailbox has expired
@@ -38,8 +62,18 @@ const validateRecipient = async (req, res) => {
       });
     }
 
-    // Update last accessed time
-    await mailbox.update({ lastAccessedAt: new Date() });
+    // Update last accessed time (async, don't wait)
+    if (!mailbox.update) {
+      // If from cache, update DB in background
+      Mailbox.update(
+        { lastAccessedAt: new Date() },
+        { where: { id: mailbox.id } }
+      ).catch((err) => console.error("Error updating lastAccessedAt:", err));
+    } else {
+      mailbox.update({ lastAccessedAt: new Date() }).catch((err) =>
+        console.error("Error updating lastAccessedAt:", err)
+      );
+    }
 
     return res.status(200).json({
       valid: true,

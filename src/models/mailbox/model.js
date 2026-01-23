@@ -44,6 +44,11 @@ const Mailbox = db.define('Mailbox', {
         allowNull: true,
         comment: 'Token for anonymous access',
     },
+    userId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'User ID for authenticated users',
+    },
 }, {
     timestamps: true,
     indexes: [

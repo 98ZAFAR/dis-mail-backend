@@ -32,6 +32,11 @@ const DisposableEmail = db.define('DisposableEmail', {
     guestSessionId:{
         type: DataTypes.UUID,
         allowNull: true
+    },
+    userId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'User ID for authenticated users'
     }
 }, {
     timestamps: true,

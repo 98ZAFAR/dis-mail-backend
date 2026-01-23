@@ -1,7 +1,6 @@
 const crypto = require("crypto");
 const { setCookies, clearCookies } = require("../../configs/cookieConfigs");
-const { clear } = require("console");
-
+const { cacheSession } = require("../../libs/utils/cacheService");
 
 const createGuestSession = async (req, res) => {
   try {
@@ -14,9 +13,17 @@ const createGuestSession = async (req, res) => {
 
     const sessionToken = crypto.randomUUID();
 
+    // Cache the new session
+    await cacheSession(sessionToken, {
+      createdAt: new Date(),
+      mailboxId: null,
+    });
+
     setCookies(res, "sessionToken", sessionToken, {
       maxAge: 24 * 60 * 60 * 1000,
     });
+
+    console.log(`[Session Created] ${sessionToken} - Cached`);
 
     return res.status(201).json({
       message: "Guest session created successfully",
