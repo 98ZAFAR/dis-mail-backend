@@ -6,6 +6,7 @@ const {
   getMailboxByEmail,
   cacheMailboxByEmail,
 } = require("../../libs/utils/cacheService");
+const { uploadToCloudinary } = require("../../libs/utils/cloudinaryService");
 
 const validateRecipient = async (req, res) => {
   try {
@@ -131,15 +132,42 @@ const receiveEmail = async (req, res) => {
 
     // Create attachment records if any
     if (mailData.attachments && mailData.attachments.length > 0) {
-      const attachmentRecords = mailData.attachments.map((att) => ({
-        mailId: mail.id,
-        filename: att.filename,
-        contentType: att.contentType,
-        size: att.size,
-        content: att.content ? Buffer.from(att.content, "base64") : null,
-        contentId: att.contentId,
-        isInline: att.contentDisposition === "inline",
-      }));
+      const attachmentRecords = [];
+
+      for (const att of mailData.attachments) {
+        let cloudinaryUrl = null;
+        let cloudinaryPublicId = null;
+
+        // Upload to Cloudinary if content exists
+        if (att.content) {
+          try {
+            const buffer = Buffer.from(att.content, "base64");
+            const cloudinaryResult = await uploadToCloudinary(
+              buffer,
+              att.filename,
+              att.contentType
+            );
+            cloudinaryUrl = cloudinaryResult.secure_url;
+            cloudinaryPublicId = cloudinaryResult.public_id;
+            console.log(`✓ Uploaded attachment to Cloudinary: ${att.filename}`);
+          } catch (error) {
+            console.error(`Error uploading attachment to Cloudinary: ${error.message}`);
+            // Continue without Cloudinary URL, store in DB as fallback
+          }
+        }
+
+        attachmentRecords.push({
+          mailId: mail.id,
+          filename: att.filename,
+          contentType: att.contentType,
+          size: att.size,
+          url: cloudinaryUrl,
+          cloudinaryPublicId: cloudinaryPublicId,
+          content: !cloudinaryUrl && att.content ? Buffer.from(att.content, "base64") : null,
+          contentId: att.contentId,
+          isInline: att.contentDisposition === "inline",
+        });
+      }
 
       await Attachment.bulkCreate(attachmentRecords);
     }
@@ -256,9 +284,74 @@ const getEmailById = async (req, res) => {
   }
 };
 
+const getAttachment = async (req, res) => {
+  try {
+    const { attachmentId } = req.params;
+    const sessionToken = req.cookies.sessionToken;
+
+    if (!sessionToken) {
+      return res.status(401).json({
+        message: "No active session found",
+      });
+    }
+
+    const mailbox = await Mailbox.findOne({
+      where: { sessionToken },
+    });
+
+    if (!mailbox) {
+      return res.status(404).json({
+        message: "Mailbox not found",
+      });
+    }
+
+    // Find attachment and verify it belongs to user's mailbox
+    const attachment = await Attachment.findOne({
+      where: { id: attachmentId },
+      include: [
+        {
+          model: Mail,
+          where: { mailboxId: mailbox.id },
+          attributes: ['id'],
+        },
+      ],
+    });
+
+    if (!attachment) {
+      return res.status(404).json({
+        message: "Attachment not found",
+      });
+    }
+
+    // If URL exists (Cloudinary), redirect to it
+    if (attachment.url) {
+      return res.redirect(attachment.url);
+    }
+
+    // If stored in DB, serve the content
+    if (attachment.content) {
+      res.setHeader('Content-Type', attachment.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${attachment.filename}"`);
+      res.setHeader('Content-Length', attachment.size);
+      return res.send(attachment.content);
+    }
+
+    return res.status(404).json({
+      message: "Attachment content not found",
+    });
+  } catch (error) {
+    console.error("Error retrieving attachment:", error);
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   validateRecipient,
   receiveEmail,
   getMailboxEmails,
   getEmailById,
+  getAttachment,
 };

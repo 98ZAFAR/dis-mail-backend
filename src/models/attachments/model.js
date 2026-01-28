@@ -29,7 +29,12 @@ const Attachment = db.define('Attachment', {
     url: {
         type: DataTypes.STRING,
         allowNull: true,
-        comment: 'URL to access the attachment (S3/CDN)',
+        comment: 'URL to access the attachment (Cloudinary/CDN)',
+    },
+    cloudinaryPublicId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Cloudinary public ID for deletion',
     },
     content: {
         type: DataTypes.BLOB,
